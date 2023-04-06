@@ -1,0 +1,43 @@
+---
+filters:
+  - shinylive
+css: tools.css
+jupyter: 
+  kernelspec:
+    name: "pydemo"
+    language: "python"
+    display_name: "pydemo"
+---
+
+
+this is olive
+
+#```{shinylive-python}
+# from shiny import App, reactive, render, ui
+# import asyncio
+
+# app_ui = ui.page_fluid(
+#     ui.input_text("n", "N", placeholder="Input a song here"),
+#     ui.input_action_button("compute", "Compute!"),
+#     ui.output_text_verbatim("result", placeholder=True),
+# )
+
+# def server(input, output, session):
+
+#     @output
+#     @render.text
+#     async def result():
+#         input.compute()        # Take a dependency on the button
+#         await asyncio.sleep(2) # Wait 2 seconds (to simulate a long computation)
+
+#         with reactive.isolate():
+#             # Inside this block, we can use input.n() without taking a
+#             # dependency on it.
+#             return f"Result: {input.n()}"
+
+# app = App(app_ui, server)
+#```
+
+```{=html}
+<iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/01tEAvdPLPREA9JT9Wpb26?utm_source=generator" width="100%" height="380" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+```
