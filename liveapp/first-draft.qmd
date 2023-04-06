@@ -1,0 +1,21 @@
+---
+title: rewrapped
+format: html
+date: April 30, 2023
+---
+
+#### Choose your persona {.fw-light}
+
+::: {.tool .g-col-lg-9 .g-col-12}
+
+
+<a href="olive.html" role="button" class="btn btn-outline-light">
+![](../images/olive.png){width="77" fig-alt="Black cat"}Olive
+</a>
+
+<a href="toast.html" role="button" class="btn btn-outline-light">
+![](../images/toast.png){width="77" fig-alt="Brown dog"}Toast
+</a>
+</a>
+
+:::

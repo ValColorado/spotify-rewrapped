@@ -1,0 +1,8 @@
+---
+title: Spotify rewrapped
+---
+
+This project uses R and the Spotify API to scrape the data. From there, it will be analyzed and preprocessed in the R language in an exploratory data analysis. 
+
+We can visualize all this data using the web application framework, Shiny, in Python. All the data and code to run the project will be available on GitHub. The choice to use both R and Python in one project was to highlight the availability of tools to make multi-language products. This also allows us to use tools that are best suited for each task, eg, data exploration in R and machine learning in Python.
+
