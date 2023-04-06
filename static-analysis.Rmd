@@ -1,0 +1,98 @@
+---
+title: "Static Analysis"
+author: 
+output: html_notebook
+---
+
+
+
+```{r}
+library(tidyverse)
+library(jsonlite)
+
+```
+## Show my most saved artist 
+```{r}
+myDataJson<-fromJSON("./MyData/YourLibrary.json")
+```
+
+```{r}
+myDataJson$tracks %>% 
+  select(artist,album,track) %>% 
+  count(artist,sort = T) %>% 
+  head(5)
+
+```
+
+##Streaming History
+
+```{r}
+s0 <-myDataJson<-fromJSON("./MyData/StreamingHistory0.json")
+```
+
+```{r}
+s1 <-myDataJson<-fromJSON("./MyData/StreamingHistory1.json") 
+```
+
+```{r}
+s2 <-myDataJson<-fromJSON("./MyData/StreamingHistory2.json") 
+
+```
+
+```{r}
+glimpse(s0)
+```
+
+```{r}
+glimpse(s1)
+```
+```{r}
+glimpse(s2)
+```
+since they all have the same columns I want to combine them to create one large dataframe
+
+```{r}
+streaming <- rbind(s0,s1,s2)
+
+```
+
+```{r}
+glimpse(streaming)
+```
+
+
+```{r}
+streaming %>% 
+  head(5)
+```
+
+
+```{r}
+library(lubridate)
+```
+
+
+
+
+
+```{r}
+min(streaming$endTime)
+```
+```{r}
+max(streaming$endTime)
+```
+
+
+```{r}
+streaming %>%
+  mutate(weekday = wday(endTime)) %>% 
+  group_by(weekday) %>% 
+  count(weekday) %>% 
+  ggplot(aes(weekday, n)) +
+  geom_point() +
+  labs(
+    x = "date",
+    y = "number of songs played"
+  )
+```
+
