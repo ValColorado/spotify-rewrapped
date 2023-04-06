@@ -12,10 +12,12 @@ library(tidyverse)
 library(jsonlite)
 ```
 
+
 Now that we have imported the libraries we can import the data
 ```{r}
 myDataJson <- fromJSON("./MyData/YourLibrary.json")
 ```
+
 
 
 using the count trick I learned from David Robinson we can see which artist is likey my favorite by the amount of saved tracks i have from them 
@@ -30,3 +32,5 @@ myDataJson$tracks %>%
   filter(artist == "Bring Me The Horizon")
 ```
 I've been a huge BMTH fan since early 2015 I listed all the tracks I have saved by them incase anyone was curious 
+
+
