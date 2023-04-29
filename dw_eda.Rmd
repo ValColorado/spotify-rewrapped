@@ -1,0 +1,457 @@
+
+### DOWNLOAD EXTENDED DATA
+
+After we have imported the libraries we can download the extended data that we gathered from our spotify download. Since all the files I need are .json I use the pattern *json to load them all in at once instead of individually loading them in.
+```{r, echo=TRUE}
+path <- "./my_extended_data/"
+files <- dir(path, pattern = "*.json")
+
+data <- files %>%
+       map_df(~fromJSON(file.path(path, .), flatten = TRUE))
+```
+
+>To get a better understanding of what all the data fields are make sure to look through the [Start Here](#page-2) page
+
+We can also use glimpse to take a quick look at the data to see what type each column is 
+```{r, echo=TRUE}
+glimpse(data)
+```
+
+
+
+After looking through the columns I want to save the ones that I will be using for the analysis.
+```{r, echo=TRUE}
+spotify_data <- data %>% 
+  select(ts,ms_played,master_metadata_track_name,master_metadata_album_artist_name,master_metadata_album_album_name,reason_start,reason_end)
+```
+
+### Data Wrangling Date Time & Rename Column
+
+Throughout the semester I learned how important tidy data is. Here we will impliment two of the changes to make this dataframe easier to manage.
+
+* Converting a column from char to POSIXct. This will allow for easier data analysis since the column will be of type date. We can use the `lubridate` to gain more information.
+
+* Renaming columns for easier analysis 
+
+
+```{r, echo=TRUE}
+spotify_data <- spotify_data %>% 
+  as_tibble() %>%
+  separate(col = "ts", 
+           into = c("date","time"),
+           sep = "T") %>% 
+  separate(col = "time",
+           into = "time",
+           sep = "Z")
+
+```
+
+
+```{r, echo=TRUE}
+datetime<- as.POSIXct(paste(spotify_data$date, spotify_data$time), format = "%Y-%m-%d %H:%M:%S")
+```
+
+```{r, echo=TRUE}
+spotify_data$datetime <- datetime
+```
+
+Here we can check that the change was implimented 
+```{r, echo=TRUE}
+spotify_data %>% 
+  select(datetime)
+```
+
+
+Finally, we just need to rename the columns.
+```{r, echo=TRUE}
+spotify_data <- spotify_data %>% 
+  rename('track'='master_metadata_track_name',
+         'artist'='master_metadata_album_artist_name',
+         'album' ='master_metadata_album_album_name'
+         )
+```
+
+>Now that we have cleaned up the data a bit we can move into data exploration and analysis! 
+
+### Total Songs Played 
+
+I've used this spotify account since 2018. I know I really enjoy listening to music all the time. The first insight I want to gain is on which day of the week do I listen to the most music.
+```{r, echo=TRUE}
+viz <- spotify_data %>%
+  drop_na(datetime) %>% 
+  mutate(weekday = wday(datetime, label =TRUE)) %>% 
+  group_by(weekday) %>% 
+  count(weekday, na.rm=T) %>% 
+  ggplot(aes(weekday, n)) +
+  geom_point() +
+  labs(
+    x = "day of the week",
+    y = "number of songs played from 2018-2023",
+  )
+```
+
+It looks like my Monday's typically consist of a cup of coffee and some music to start my week off right! 
+
+### total songs played during week plot  {data-height=600}
+
+```{r, fig.align='left', echo = FALSE}
+viz
+```
+
+
+
+### Top 5 favorite songs through the years
+
+I also wanted to learn about what my favorite songs were throughout the years. Since I tend to listen to a lot of music I only want to display my top 5 results.
+
+This shows my top 5 songs throughout the years
+```{r, echo=TRUE}
+ top_five_songs<-spotify_data %>% 
+   mutate(year= year(datetime)) %>% 
+   na.omit() %>% 
+   group_by(year,track) %>%
+   summarise(n=n()) %>% 
+   top_n(n = 5,wt=n) 
+top_five_songs
+
+```
+
+```{r, echo=TRUE}
+top_songs_bar <- ggplot(top_five_songs, aes(fill=track, x=year,y=n))+
+  geom_bar(position="stack", stat="identity",show.legend = FALSE)+
+  scale_x_continuous(breaks = c(2018:2023))
+```
+
+**Question for REI How do i make the chart fit the year is not showing** 
+
+### Visualization {data-height=750, data-width=500}
+
+```{r,fig.align='left',echo=TRUE}
+ggplotly(top_songs_bar+ labs(title = "Top 5 Songs Throughout The Years")) %>% 
+  layout(showlegend = FALSE)
+
+```
+
+
+
+### Top songs no skip
+
+The analysis for my top 5 tracks tracked every time the song was played. However, just because a song plays doesn't mean I listened to it all the way through. I will recreate what I did for the top tracks but this time i will only count the songs that played all the way through.
+
+
+```{r, echo=TRUE}
+skipped <-spotify_data %>% 
+ #select(9:11,17,23) %>% 
+ # na.omit() %>% 
+  filter(reason_end == "trackdone") %>%
+  mutate(year= year(datetime)) %>% 
+  group_by(year,track) %>%
+   summarise(n=n()) %>% 
+   top_n(n = 5,wt=n) 
+```
+
+```{r}
+skipped
+```
+
+
+```{r, echo=TRUE}
+done <- ggplot(skipped, aes(fill=track, x=year,y=n))+
+  geom_bar(position="stack", stat="identity",show.legend = FALSE)+
+  scale_x_continuous(breaks = c(2018:2023))
+```
+
+### Visualization {data-height=750}
+
+```{r, echo=TRUE}
+done_plotly <- ggplotly(done+ labs(title = "Top 5 Songs Throughout The Years - Track Done")) %>% 
+  layout(showlegend = FALSE)
+
+done_plotly
+```
+
+
+### How often did I listen to my top song 
+
+**Once i filtered by the songs that finished playing without me skipping you can see that my top 5 tracks change throughout the year**
+
+my top song in 2019 was Bow Down from Iprevail played a total of 116 times. Which day of the week did i listen to the song the most
+
+```{r, echo=TRUE}
+amount_played_2019 <- spotify_data %>% 
+  drop_na(datetime) %>% 
+  mutate(weekday = wday(datetime, label =TRUE),
+         year = year(datetime)
+         )%>% 
+  select(weekday,year,track,datetime) %>% 
+  na.omit() %>% 
+  group_by(track,weekday,year) %>% 
+  count() %>% 
+  filter(track == "Bow Down", year == 2019)
+```
+
+```{r}
+amount_played_2019
+```
+
+This table shows that in 2019 on in total on Mondays I listened to Bow Down the most. Which makes sense becasue I typically went to the gym on monday mornings that yearr. 
+
+### How many tracks do I skip a year?
+
+After seeing how my top 5 changed when i filtered out by songs that finished. I was curious to see how many songs I skip every year.
+
+```{r, echo=TRUE}
+skipped_yearly <- spotify_data %>% 
+   mutate(year = year(datetime))%>% 
+  select(track,reason_end,year) %>% 
+  na.omit() %>% 
+  group_by(year,reason_end) %>% 
+  count()
+```
+
+```{r}
+skipped_yearly
+```
+
+```{r}
+skipped_yearly_plot <- ggplot(data= skipped_yearly, aes(x= year, y=n, fill=reason_end))+
+  geom_point()
+```
+
+### Visualization {data-height=750}
+
+This is the rendered graphic showing how the songs I listened to ended throughout the years.
+
+```{r}
+ggplotly(skipped_yearly_plot)
+```
+
+
+### Total listening hours
+
+
+I know I spend a lot of time listening to music so I wanted to visualize this. 
+
+
+```{r, echo=TRUE}
+year_plot <-spotify_data %>%
+  mutate(date = date(datetime)) %>% 
+  group_by(date = floor_date(date, "week")) %>% 
+  summarise(total_ms_played = sum(ms_played)) %>% 
+  na.omit()%>% 
+  mutate(second = (total_ms_played/ 1000),
+         minute = (second/60),
+         hours = (minute/60))  %>% 
+  ggplot(aes(x = date, y = hours)) +
+  geom_col(aes(fill = hours)) +
+  scale_x_date(date_labels = "%b %Y", date_breaks= "12 month") +
+  scale_fill_gradient(low = "grey", high = "gold") +
+  labs(title = "Playback hours per week") +
+  xlab("") +
+  theme_light()
+```
+
+### Visualization {data-height=600} 
+ The bar graph below shows how many hours a **week** I spent listening to music.
+
+```{r}
+ggplotly(year_plot+ labs(title = "Hours spent listening to music weekly")) 
+
+```
+
+I was curious to see what I was doing at that time... I had a couple of road trips so it makes sense that my listening hours were at an all time high! 
+
+
+### Breakdown of the amount of songs I listened to that week
+
+Because the highest week I had of listening to music I was curious to see how many songs I listened to each day 
+
+```{r}
+week_of_oct <-spotify_data %>%
+  mutate(date = date(datetime)) %>% 
+  select(ms_played,track,date) %>% 
+  filter(date %in% ymd(c("2020-10-25","2020-10-26","2020-10-27","2020-10-28","2020-10-29","2020-10-30","2020-10-31"))) %>% 
+  group_by(track,date) %>% 
+  mutate(amount_played = n()) %>% 
+  group_by(date) %>% 
+  summarise(
+    total_play = sum(amount_played)
+  )
+
+
+```
+
+```{r}
+week_of_oct_plot <- ggplot(data=week_of_oct, aes(x=date, y=total_play))+
+  geom_bar(position="stack", stat="identity",show.legend = FALSE)+
+  scale_x_date(date_labels = "%b %D", date_breaks= "1 day") +
+    theme(axis.text = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+
+```
+
+```{r}
+ggplotly(week_of_oct_plot) %>% 
+  layout(showlegend = FALSE)
+
+```
+
+Using spotifyWebAPI it's harder to get the same insights that i got from my static analysis 
+
+### Listening History from the start of my spotify account 
+
+After you follow the steps from on how to get your client id ([Start Here](#page-1)) we can get started on our dynamic analysis! 
+
+This portion uses a lot of the `spotifyr` package so make sure you ran the first import libraries 
+
+first we want to reference our credentials. We make sure this is not anywhere visible so i saved it in a new file. 
+```{r}
+library(tidyverse)
+library(jsonlite)
+library(lubridate)
+library(plotly)
+library(flexdashboard)
+library(spotifyr)
+library(purrr)
+library(knitr)
+```
+
+
+```{r}
+source("keys/spotifyAPI.R")
+```
+
+
+this grants our authorization so we can use the web api.
+```{r}
+# auth<- spotifyr::get_spotify_authorization_code(Sys.getenv("SPOTIFY_CLIENT_ID"),
+#                                         Sys.getenv("SPOTIFY_CLIENT_SECRET"),
+#                                         scopes)
+```
+
+After running this command you'll get a new window from spotify asking for your credentials 
+
+### What Are My Favorite Tracks Within the Past 4 Weeks
+
+Using the spotifyAPI you can get different analysis 
+
+```{r, echo=TRUE}
+top_trackATM <- get_my_top_artists_or_tracks(type = 'tracks', 
+                             time_range = 'short_term', 
+                             limit = 5) %>% 
+    mutate(
+        artist.name = map_chr(artists, function(x) x$name[1])
+        ) %>% 
+  select(artist.name,name,popularity)
+```
+
+Using the spotify API we can get more information on 
+
+### Vizualization
+
+Lets see how popular my top most recent favorite tracks are
+```{r}
+ggplot(data = top_trackATM, aes(x = name, y = popularity)) + 
+  coord_flip()+
+  geom_col(aes(fill = artist.name))
+```
+
+
+### Favorite track within the past 6 months 
+
+```{r, echo=TRUE}
+top_track_6month <- get_my_top_artists_or_tracks(type = 'tracks', 
+                             time_range = 'medium_term', 
+                             limit = 5,
+                             ) %>% 
+    mutate(
+        artist.name = map_chr(artists, function(x) x$name[1])
+        ) %>% 
+  select(artist.name,name,popularity)
+```
+
+I wasn't expecting _just pretend_ to have the highest popularity score since it's more of a rock song.
+
+
+### Vizualization
+
+```{r}
+ggplot(data = top_track_6month, aes(x = name, y = popularity)) +
+  coord_flip()+
+  geom_col(aes(fill = artist.name)) 
+```
+
+
+
+### What Type of Features Can I Get From My Playlist
+
+
+```{r}
+playlist <- get_my_playlists()
+```
+
+
+***EXPLAIN WHAT ENERGY & DANCE IS***
+B2B is a playlist with artist from recent/upcomoming concerts 
+
+```{r, echo=TRUE}
+b2b_audio <- get_playlist_audio_features(playlist_uris = "69LURFh6OXwpXQWSQc45e7")
+```
+
+```{r, echo=TRUE}
+b2b_audio_plot <- ggplot(b2b_audio, aes(fill = track.name, y= danceability, x = tempo)) +
+  geom_point() 
+
+```
+
+```{r}
+b2b_audio %>% 
+      mutate(
+        artist.name = map_chr(track.artists, function(x) x$name[1])
+        ) %>% 
+  select(track.name,artist.name,danceability,energy) %>% 
+  arrange(desc(danceability))
+```
+
+
+### Visualization {data-height=800} 
+```{r, echo=TRUE}
+ggplotly(b2b_audio_plot+ labs(title = "Danceability of B2B Playlist")) 
+  
+```
+One big difference from what I did in my extended history analysis is that with the API i can get more information about tracks
+
+## What More Can I Learn About My 2019 Favorite Songs 
+```{r}
+playlist
+```
+
+```{r}
+playlist_2019 <- get_playlist_audio_features(playlist_uris = "37i9dQZF1EtklzPPpNlUF9") 
+  
+
+```
+
+```{r}
+playlist_2019 %>% 
+  group_by(track.artists)
+```
+```{r}
+ playlist_2019 <- playlist_2019%>% 
+      mutate(
+        artist.name = map_chr(track.artists, function(x) x$name[1])
+        ) %>% 
+  select(artist.name,track.name, key_name, key_mode,danceability,energy,loudness,liveness,valence) 
+  
+  
+```
+
+```{r}
+plot_2019 <- ggplot(data=playlist_2019, aes(x=loudness, y=energy, fill = track.name))+
+  geom_point(show.legend = F)
+```
+
+```{r}
+ggplotly(plot_2019)
+```
+
