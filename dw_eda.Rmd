@@ -2,12 +2,24 @@
 ### DOWNLOAD EXTENDED DATA
 
 After we have imported the libraries we can download the extended data that we gathered from our spotify download. Since all the files I need are .json I use the pattern *json to load them all in at once instead of individually loading them in.
+```{r}
+library(tidyverse)
+library(jsonlite)
+library(lubridate)
+library(plotly)
+library(flexdashboard)
+library(spotifyr)
+library(purrr)
+library(knitr)
+```
+
 ```{r, echo=TRUE}
 path <- "./my_extended_data/"
 files <- dir(path, pattern = "*.json")
 
-data <- files %>%
-       map_df(~fromJSON(file.path(path, .), flatten = TRUE))
+#data <- files %>%
+ #      map_df(~fromJSON(file.path(path, .), flatten = TRUE))
+data <- read_csv("./my_extended_data/my_data.csv")
 ```
 
 >To get a better understanding of what all the data fields are make sure to look through the [Start Here](#page-2) page
@@ -77,6 +89,7 @@ spotify_data <- spotify_data %>%
 
 I've used this spotify account since 2018. I know I really enjoy listening to music all the time. The first insight I want to gain is on which day of the week do I listen to the most music.
 ```{r, echo=TRUE}
+library(lubridate)
 viz <- spotify_data %>%
   drop_na(datetime) %>% 
   mutate(weekday = wday(datetime, label =TRUE)) %>% 
@@ -128,7 +141,7 @@ top_songs_bar <- ggplot(top_five_songs, aes(fill=track, x=year,y=n))+
 
 ```{r,fig.align='left',echo=TRUE}
 ggplotly(top_songs_bar+ labs(title = "Top 5 Songs Throughout The Years")) %>% 
-  layout(showlegend = FALSE)
+  layout()
 
 ```
 
@@ -305,16 +318,6 @@ After you follow the steps from on how to get your client id ([Start Here](#page
 This portion uses a lot of the `spotifyr` package so make sure you ran the first import libraries 
 
 first we want to reference our credentials. We make sure this is not anywhere visible so i saved it in a new file. 
-```{r}
-library(tidyverse)
-library(jsonlite)
-library(lubridate)
-library(plotly)
-library(flexdashboard)
-library(spotifyr)
-library(purrr)
-library(knitr)
-```
 
 
 ```{r}
@@ -436,6 +439,7 @@ playlist_2019 <- get_playlist_audio_features(playlist_uris = "37i9dQZF1EtklzPPpN
 playlist_2019 %>% 
   group_by(track.artists)
 ```
+
 ```{r}
  playlist_2019 <- playlist_2019%>% 
       mutate(
