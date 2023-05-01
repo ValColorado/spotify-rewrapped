@@ -149,11 +149,19 @@ ul.task-list li input[type="checkbox"] {
 
 </header>
 
-<!-- 
-
+<!-- ```{python}
 import pandas as pd
 
 raw = pd.read_csv("../my_extended_data/kaggle_dataset.csv")
+
+my_songs = pd.read_csv("../my_extended_data/500.csv") 
+
+rec_songs.columns
+my_songs["track_id"] = my_songs["spotify_track_uri"]
+from siuba import _, inner_join, right_join, mutate, distinct, semi_join
+same_songs = (rec_songs
+    >> semi_join(_, my_songs, on="track_id")
+).dropna()
 
 raw = raw[raw['track_name'].map(lambda x: str(x).isascii())]
 raw = raw[raw["track_name"].apply(lambda x: "Christmas" not in str(x)and "Halloween" not in str(x))]
@@ -165,10 +173,17 @@ pop = (
     >> filter(_.popularity < 20)
 )
 pop
-pop_sample = pop.sample(n=700)
+pop_sample = pop.sample(n=500)
 
-pop_sample.to_csv("../my_extended_data/ascii.csv")
+song_list = pd.concat([pop_sample, same_songs])
 
+song_list.to_csv("../my_extended_data/new_ascii.csv")
+
+
+new_songs = pd.read_csv("../my_extended_data/new_ascii.csv") 
+(new_songs
+    >> semi_join(_, my_songs, on="track_id")
+).dropna()
 
 (raw
     >> distinct(_.track_genre
@@ -179,7 +194,7 @@ pop_sample.to_csv("../my_extended_data/ascii.csv")
 raw >> distinct(_.detect)
 
 
-``` -->
+```  -->
 
 
 
